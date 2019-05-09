@@ -39,19 +39,12 @@ class Arbol
 
   public:
     /**
-     * Inserta un valor en el árbol de forma ordenada, delegando su funcionamiento al método privado
-     * en caso de ser necesario.
+     * Inserta un valor en el árbol de forma ordenada, delegando su funcionamiento al método privado.
      */
     void insertar(T valor)
     {
-      if (estaVacio())
-      {
-        raiz = new NodoArbol<T>{valor};
-      }
-      else
-      {
-        insertar(raiz, valor);        
-      }
+      bool balanceado = false;
+      raiz = insertar(raiz, valor, balanceado);
     }
 
     /**
@@ -61,14 +54,21 @@ class Arbol
     {
       if (!estaVacio()) 
       {
-        if (raiz->valor == valor)
+        // La raíz se maneja de forma particular, cuando es un nodo hoja
+        if (raiz->valor == valor && raiz->derecha == nullptr && raiz->izquierda == nullptr)
         {
           delete raiz;
           raiz = nullptr;
         }
         else
         {
-          // TODO: 
+          NodoArbol<T> *padre = obtenerPadre(valor);
+          NodoArbol<T> *nodo = buscarNodo(valor);
+
+          if (nodo != nullptr)
+          {
+
+          }
         }
       }
     }
@@ -211,31 +211,122 @@ class Arbol
 
   private:
     /**
-     * Inserta un elemento en el árbol dependiendo de su orden con respecto a los otros nodos.
+     * Inserta un elemento en el árbol dependiendo de su orden con respecto a los otros nodos,
+     * regresando el nodo donde se inició la inserción. Este nodo puede cambiar si se realiza una
+     * rotación.
      */
-    void insertar(NodoArbol<T> *nodo, T valor)
+    NodoArbol<T> *insertar(NodoArbol<T> *nodo, T valor, bool &balanceado)
     {
-      if (valor < nodo->valor)
+      // Si es nulo regresar un nuevo nodo
+      if (nodo == nullptr) 
       {
-        if (nodo->izquierda == nullptr)
-        {
-          nodo->izquierda = new NodoArbol<T>{valor};
-        }
-        else
-        {
-          insertar(nodo->izquierda, valor);
-        }
+        return new NodoArbol<T>{valor};
+      }
+      // Posiblemente reasignar alguno de los nodos, si son nulos.
+      else if (valor <= nodo->valor)
+      {
+        nodo->izquierda = insertar(nodo->izquierda, valor, balanceado);
       }
       else
       {
-        if (nodo->derecha == nullptr)
+        nodo->derecha = insertar(nodo->derecha, valor, balanceado);
+      }
+
+      // Verificar que no se ha balanceado anteriormente
+      if (!balanceado) 
+      {
+        int factorEquilibrio = obtenerFactorEquilibrio(nodo);
+
+        // Verificar si el árbol está desequilibrado en la izquierda
+        if (factorEquilibrio <= -2)
         {
-          nodo->derecha = new NodoArbol<T>{valor};
-        }
-        else
+          // Marcar que ya se realizó un rebalanceo, por lo que no se necesitan más
+          balanceado = true;
+
+          if (valor <= nodo->izquierda->valor)
+          {
+            // El nuevo nodo se agregó a la izquierda. (Caso II)
+            return rotarDerecha(nodo);
+          }
+          else
+          {
+            // El nuevo nodo se agregó a la derecha. (Caso ID)
+            nodo->izquierda = rotarIzquierda(nodo->izquierda);
+            return rotarDerecha(nodo);
+          }
+        } 
+        // Verificar si está desequilibrado a la derecha.
+        else if (factorEquilibrio >= 2) 
         {
-          insertar(nodo->derecha, valor);
+          // Marcar que ya se realizó un rebalanceo, por lo que no se necesitan más
+          balanceado = true;
+
+          if (valor <= nodo->derecha->valor)
+          {
+            // El nuevo nodo se agregó a la izquierda. (Caso DI)
+            nodo->derecha = rotarDerecha(nodo->derecha);
+            return rotarIzquierda(nodo);
+          }
+          else
+          {
+            // El nuevo nodo se agregó a la derecha. (Caso DD)
+            return rotarIzquierda(nodo);
+          }
         }
+      }
+
+      // En este caso, no se realizó un rebalanceo, por lo que el nodo sigue igual
+      return nodo;
+    }
+
+    /** 
+     * Realiza una rotación de un nodo en la dirección especificada. Regresa la nueva ráiz.
+     */
+    NodoArbol<T> *rotarDerecha(NodoArbol<T> *raiz) 
+    {
+      NodoArbol<T> *nuevaRaiz = raiz->izquierda;
+      NodoArbol<T> *temp = nuevaRaiz->derecha;
+
+      nuevaRaiz->derecha = raiz;
+      raiz->izquierda = temp;
+
+      return nuevaRaiz;
+    }
+
+    /** 
+     * Realiza una rotación de un nodo en la dirección especificada. Regresa la nueva ráiz.
+     */
+    NodoArbol<T> *rotarIzquierda(NodoArbol<T> *raiz) 
+    {
+      NodoArbol<T> *nuevaRaiz = raiz->derecha;
+      NodoArbol<T> *temp = nuevaRaiz->izquierda;
+
+      nuevaRaiz->izquierda = raiz;
+      raiz->derecha = temp;
+
+      return nuevaRaiz;
+    }
+
+    /**
+     * Obtiene el factor de equilibrio de un nodo.
+     */
+    int obtenerFactorEquilibrio(NodoArbol<T> *nodo) {
+      if (nodo == nullptr) 
+      {
+        return 0;
+      }
+      else 
+      {
+        int alturaIzquierda = obtenerAltura(nodo->izquierda);
+        int alturaDerecha = obtenerAltura(nodo->derecha);
+
+        if (nodo->izquierda != nullptr)
+          alturaIzquierda += 1;
+
+        if (nodo->derecha != nullptr)
+          alturaDerecha += 1;
+
+        return alturaDerecha - alturaIzquierda;
       }
     }
 
@@ -423,13 +514,6 @@ class Arbol
       }
     }
 };
-
-//Metodo para rotacion DD
-void rotacionDD(){
-  raiz=raiz->der->der;
-  raiz->izq=raiz
-}
-
 /**
  * El toString de la clase.
 */
