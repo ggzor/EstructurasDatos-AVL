@@ -43,6 +43,7 @@ class Arbol
      */
     void insertar(T valor)
     {
+      // Bandera para indicar si ya se realizó un balanceo
       bool balanceado = false;
       raiz = insertar(raiz, valor, balanceado);
     }
