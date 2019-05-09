@@ -30,12 +30,12 @@ int main()
     limpiarTerminal();
     std::cout << arbol << std::endl;
     std::cout << "Menú:\n" 
-              << "  1. Recorrido en PreOrden. \n "
-              << "  2. Recorrido En Orden. \n "
-              << "  3. Recorrido en Post Orden.  \n"
+              << "  1. Recorrido en PreOrden. \n"
+              << "  2. Recorrido EnOrden. \n"
+              << "  3. Recorrido en PostOrden.\n"
               << "  4. Insertar un elemento. \n"
-              << "  5. Eliminar un valor dado.\n "
-              << "  6. Encontrar camino\n"
+              << "  5. Eliminar un valor dado.\n"
+              << "  6. Encontrar camino.\n"
               << "  7. Salir. \n"
               << std::endl;
     std::cout << "Opción: ";
@@ -119,6 +119,7 @@ int main()
       std::cin >> valor;
 
       arbol.insertar(valor);
+      std::cout << "Se ha insertado el nuevo valor." <<  terminarColor << std::endl;
 
       esperarEnter();
       break;
@@ -133,6 +134,7 @@ int main()
         int valor;
         std::cout << "Valor a eliminar: " << colorNodo;
         std::cin >> valor;
+        std::cout << terminarColor;
 
         if (arbol.buscarNodo(valor) == nullptr) 
         {
@@ -141,13 +143,14 @@ int main()
         else
         {
           arbol.eliminar(valor);
+          std::cout << colorNodo << "Se ha eliminado el nodo con el valor especificado." << terminarColor << std::endl;
         }
 
         esperarEnter();
       }
       esperarEnter();
       break;
-    case 9:
+    case 6:
       if (arbol.estaVacio())
       {
         std::cout << colorError << "El árbol está vacío." << terminarColor << std::endl;
@@ -184,7 +187,7 @@ int main()
 
             if (recorrido.estaVacia())
             {
-              std::cout << "No existe camino entre los valores especificados. (Lo cual es raro :( ))" << std::endl;
+              std::cout << "No existe camino entre los valores especificados." << std::endl;
             }
             else
             {
