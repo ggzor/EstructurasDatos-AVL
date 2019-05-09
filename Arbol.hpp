@@ -2,9 +2,9 @@
  * Benemérita Universidad Autónoma de Puebla
  * Estructuras de datos
  * 
- * Clase que representa un árbol binario no balanceado.
+ * Clase que representa un árbol binario de búsqueda balanceado (AVL).
  * 
- * Fecha: 24/04/2019
+ * Fecha: 09/05/2019
  * 
  * Equipo:
  *   Axel Suárez Polo        201744436
@@ -39,19 +39,21 @@ class Arbol
 
   public:
     /**
-     * Inserta un valor en el árbol de forma ordenada, delegando su funcionamiento al método privado
-     * en caso de ser necesario.
+     * Inserta un valor en el árbol de forma ordenada, delegando su funcionamiento al método privado.
      */
     void insertar(T valor)
     {
-      if (estaVacio())
-      {
-        raiz = new NodoArbol<T>{valor};
-      }
-      else
-      {
-        insertar(raiz, valor);
-      }
+      // Bandera para indicar si ya se realizó un balanceo
+      bool balanceado = false;
+      raiz = insertar(raiz, valor, balanceado);
+    }
+
+    /**
+     * Elimina el nodo del árbol que contiene el valor especificado, llamando al método recursivo
+     */
+    void eliminar(T valor) 
+    {
+      raiz = eliminar(raiz, valor);
     }
 
     /**
@@ -95,65 +97,10 @@ class Arbol
     }
 
     /**
-     * Obtiene los hijos de un nodo especificado.
-     */
-    Lista<NodoArbol<T> *> obtenerHijosDe(T valor) {
-      NodoArbol<T> *nodo = buscarNodo(valor);
-
-      if (nodo == nullptr) 
-        return {};
-      else
-        return {nodo->izquierda, nodo->derecha}; 
-    }
-
-    /**
      * Este método regresa verdadero si el árbol está vacío.
      */
     bool estaVacio() {
       return raiz == nullptr;
-    }
-
-
-    /**
-     * Regresa todos los nodos hoja del árbol, realizando
-     */
-    Lista<NodoArbol<T> *> obtenerHojas() {
-      Lista<NodoArbol<T> *> resultado;
-
-      auto recorrido = recorrerEnOrden();
-      for (NodoArbol<T> *nodo : recorrido)
-      {
-        if (nodo->derecha == nullptr && nodo->izquierda == nullptr)
-        {
-          resultado.insertarFinal(nodo);
-        }
-      }
-
-      return resultado;
-    } 
-
-    /**
-     * Regresa el hermano de un nodo, delega la búsqueda al método recursivo.
-     */
-    NodoArbol<T> *obtenerHermano(T valor)
-    {
-      if (raiz != nullptr)
-      {
-        // La raíz no tiene hermanos
-        if (raiz->valor == valor)
-        {
-          return nullptr;
-        }
-        else
-        {
-          // Delegar a metodo recursivo
-          return obtenerHermano(raiz, valor);
-        }
-      }
-      else
-      {
-        return nullptr;
-      }
     }
 
     /**
@@ -188,37 +135,6 @@ class Arbol
     }
 
     /**
-     * Obtiene los descendientes de un nodo
-     */
-    Lista<NodoArbol<T> *> obtenerDescendientes(T valor)
-    {
-      Lista<NodoArbol<T> *> resultadoFinal;
-      Lista<NodoArbol<T> *> resultado;
-      auto nodo = buscarNodo(valor);
-
-      if (nodo == nullptr)
-      {
-        // El nodo no está en el árbol
-        return resultado;
-      }
-      else
-      {
-        // Realizar un recorrido para llenarla con los resultados desde este nodo
-        recorrerEnOrden(nodo, resultado);
-
-        for (auto nodo : resultado)
-        {
-          if (nodo->valor != valor)
-          {
-            resultadoFinal.insertarFinal(nodo);
-          }
-        }
-
-        return resultadoFinal;
-      }
-    }
-
-    /**
      * Obtiene el camino entre dos nodos, si estos existen
      */
     Lista<NodoArbol<T> *> obtenerCamino(T valor1, T valor2)
@@ -226,25 +142,9 @@ class Arbol
       auto nodo1 = buscarNodo(valor1);
       auto nodo2 = buscarNodo(valor2);
 
-      if (nodo1 != nullptr && nodo2 != nullptr)
+      if (nodo1 != nullptr && nodo2 != nullptr && esAncestroDe(nodo1, nodo2))
       {
-        auto minimoComunAncestro = obtenerMinimoComunAncestro(raiz, nodo1, nodo2);
-
-        if (minimoComunAncestro != nullptr) 
-        {
-          auto camino1 = obtenerCaminoAncestroDescendiente(minimoComunAncestro, nodo1);
-          auto camino2 = obtenerCaminoAncestroDescendiente(minimoComunAncestro, nodo2);
-
-          if (!camino1.estaVacia() && !camino2.estaVacia() && camino1.frente->dato == camino2.frente->dato)
-            camino2.eliminarInicio();
-
-          return camino1.reversa().concatenar(camino2);
-        }
-        else
-        {
-          // Algo salío mal si llegamos aquí
-          return {};
-        }
+        return obtenerCaminoAncestroDescendiente(nodo1, nodo2);
       }
       else
       {
@@ -294,32 +194,225 @@ class Arbol
 
   private:
     /**
-     * Inserta un elemento en el árbol dependiendo de su orden con respecto a los otros nodos.
+     * Inserta un elemento en el árbol dependiendo de su orden con respecto a los otros nodos,
+     * regresando el nodo donde se inició la inserción. Este nodo puede cambiar si se realiza una
+     * rotación.
      */
-    void insertar(NodoArbol<T> *nodo, T valor)
+    NodoArbol<T> *insertar(NodoArbol<T> *nodo, T valor, bool &balanceado)
     {
-      if (valor < nodo->valor)
+      // Si es nulo regresar un nuevo nodo
+      if (nodo == nullptr) 
       {
-        if (nodo->izquierda == nullptr)
-        {
-          nodo->izquierda = new NodoArbol<T>{valor};
-        }
-        else
-        {
-          insertar(nodo->izquierda, valor);
-        }
+        return new NodoArbol<T>{valor};
+      }
+      // Posiblemente reasignar alguno de los nodos, si son nulos.
+      else if (valor <= nodo->valor)
+      {
+        nodo->izquierda = insertar(nodo->izquierda, valor, balanceado);
       }
       else
       {
-        if (nodo->derecha == nullptr)
+        nodo->derecha = insertar(nodo->derecha, valor, balanceado);
+      }
+
+      // Verificar que no se ha balanceado anteriormente
+      if (!balanceado) 
+      {
+        int factorEquilibrio = obtenerFactorEquilibrio(nodo);
+
+        // Verificar si el árbol está desequilibrado en la izquierda
+        if (factorEquilibrio <= -2)
         {
-          nodo->derecha = new NodoArbol<T>{valor};
+          // Marcar que ya se realizó un rebalanceo, por lo que no se necesitan más
+          balanceado = true;
+
+          if (valor <= nodo->izquierda->valor)
+          {
+            // El nuevo nodo se agregó a la izquierda. (Caso II)
+            return rotarDerecha(nodo);
+          }
+          else
+          {
+            // El nuevo nodo se agregó a la derecha. (Caso ID)
+            nodo->izquierda = rotarIzquierda(nodo->izquierda);
+            return rotarDerecha(nodo);
+          }
+        } 
+        // Verificar si está desequilibrado a la derecha.
+        else if (factorEquilibrio >= 2) 
+        {
+          // Marcar que ya se realizó un rebalanceo, por lo que no se necesitan más
+          balanceado = true;
+
+          if (valor <= nodo->derecha->valor)
+          {
+            // El nuevo nodo se agregó a la izquierda. (Caso DI)
+            nodo->derecha = rotarDerecha(nodo->derecha);
+            return rotarIzquierda(nodo);
+          }
+          else
+          {
+            // El nuevo nodo se agregó a la derecha. (Caso DD)
+            return rotarIzquierda(nodo);
+          }
+        }
+      }
+
+      // En este caso, no se realizó un rebalanceo, por lo que el nodo sigue igual
+      return nodo;
+    }
+
+    /** 
+     * Realiza una rotación de un nodo en la dirección especificada. Regresa la nueva ráiz.
+     */
+    NodoArbol<T> *rotarDerecha(NodoArbol<T> *raiz) 
+    {
+      NodoArbol<T> *nuevaRaiz = raiz->izquierda;
+      NodoArbol<T> *temp = nuevaRaiz->derecha;
+
+      nuevaRaiz->derecha = raiz;
+      raiz->izquierda = temp;
+
+      return nuevaRaiz;
+    }
+
+    /** 
+     * Realiza una rotación de un nodo en la dirección especificada. Regresa la nueva ráiz.
+     */
+    NodoArbol<T> *rotarIzquierda(NodoArbol<T> *raiz) 
+    {
+      NodoArbol<T> *nuevaRaiz = raiz->derecha;
+      NodoArbol<T> *temp = nuevaRaiz->izquierda;
+
+      nuevaRaiz->izquierda = raiz;
+      raiz->derecha = temp;
+
+      return nuevaRaiz;
+    }
+
+    /**
+     * Obtiene el factor de equilibrio de un nodo.
+     */
+    int obtenerFactorEquilibrio(NodoArbol<T> *nodo) {
+      if (nodo == nullptr) 
+      {
+        return 0;
+      }
+      else 
+      {
+        int alturaIzquierda = obtenerAltura(nodo->izquierda);
+        int alturaDerecha = obtenerAltura(nodo->derecha);
+
+        if (nodo->izquierda != nullptr)
+          alturaIzquierda += 1;
+
+        if (nodo->derecha != nullptr)
+          alturaDerecha += 1;
+
+        return alturaDerecha - alturaIzquierda;
+      }
+    }
+
+    /**
+     * Elimina el nodo con el valor especificado, regresando el nuevo nodo.
+     */
+    NodoArbol<T> *eliminar(NodoArbol<T> *nodo, T valor)
+    {
+      // No se encontró el valor
+      if (nodo == nullptr)
+      {
+        return nullptr;
+      }
+      else if (valor < nodo->valor)
+      {
+        // Seguir la búsqueda a la izquierda
+        nodo->izquierda = eliminar(nodo->izquierda, valor);
+      }
+      else if (valor > nodo->valor)
+      {
+        // Seguir la búsqueda a la derecha 
+        nodo->derecha = eliminar(nodo->derecha, valor);
+      }
+      // Este es el nodo buscado
+      else
+      {
+        // Es un nodo hoja
+        if (nodo->izquierda == nullptr && nodo->derecha == nullptr)
+        {
+          delete nodo;
+          nodo = nullptr;
+        }
+        // Sólo tiene hijo izquierdo
+        else if(nodo->derecha == nullptr)
+        {
+          // Su hijo izquierdo será la nueva raíz del subárbol
+          NodoArbol<T> *temp = nodo->izquierda;
+          delete nodo;
+          nodo = temp;
+        }
+        // Sólo tiene hijo derecho
+        else if (nodo->izquierda == nullptr)
+        {
+          // Su hijo derecho será la nueva raíz del subárbol
+          NodoArbol<T> *temp = nodo->derecha;
+          delete nodo;
+          nodo = temp;
+        }
+        // Tiene ambos hijos
+        else
+        {
+          // Buscar el máximo nodo de la izquierda
+          NodoArbol<T> *maximo = nodo->izquierda;
+          while (maximo->derecha != nullptr)
+            maximo = maximo->derecha;
+
+          // Copiar valor al nodo actual
+          nodo->valor = maximo->valor;
+
+          // Eliminar recursivamente el nodo máximo de la izquierda
+          nodo->izquierda = eliminar(nodo->izquierda, maximo->valor);
+        }        
+      }
+
+      // El árbol fue eliminado completamente
+      if (nodo == nullptr)
+        return nullptr;
+
+      int factorEquilibrio = obtenerFactorEquilibrio(nodo);
+
+      // Verificar si está desbalanceado a la izquierda
+      if (factorEquilibrio <= -2) 
+      {
+        if (obtenerFactorEquilibrio(nodo->izquierda) <= 0)
+        {
+          // El subárbol de la izquierda es más grande (alto) o igual al subárbol de la derecha (Caso II)
+          return rotarDerecha(nodo);
         }
         else
         {
-          insertar(nodo->derecha, valor);
+          // El subárbol de la izquierda es menor que el de la derecha (Caso ID)
+          nodo->izquierda = rotarIzquierda(nodo->izquierda);
+          return rotarDerecha(nodo);
+        }        
+      }
+      // Verificar si está desbalanceado a la derecha
+      else if (factorEquilibrio >= 2)
+      {
+        if (obtenerFactorEquilibrio(nodo->derecha) >= 0)
+        {
+          // El subárbol de la derecha es más pequeño (alto) o igual al subárbol de la izquierda (Caso DD)
+          return rotarIzquierda(nodo);
+        }
+        else
+        {
+          // El subárbol de la izquierda es menor que el de la derecha (Caso DI)
+          nodo->derecha = rotarDerecha(nodo->derecha);
+          return rotarIzquierda(nodo);
         }
       }
+
+      // No había desequilibrio, regresar nodo sin modificaciones
+      return nodo;
     }
 
     /**
@@ -393,41 +486,6 @@ class Arbol
     }
 
     /**
-     * Regresa el hermano de un nodo, delega la búsqueda al método recursivo.
-     */
-    NodoArbol<T> *obtenerHermano(NodoArbol<T> *nodo, T valor)
-    {
-      if (nodo != nullptr)
-      {
-        if (nodo->izquierda != nullptr && nodo->izquierda->valor == valor)
-        {
-          return nodo->derecha;
-        }
-        else if (nodo->derecha != nullptr && nodo->derecha->valor == valor)
-        {
-          return nodo->izquierda;
-        }
-        else
-        {
-          auto resultadoIzquierda = obtenerHermano(nodo->izquierda, valor);
-
-          if (resultadoIzquierda != nullptr)
-          {
-            return resultadoIzquierda;
-          }
-          else
-          {
-            return obtenerHermano(nodo->derecha, valor);
-          }
-        }
-      }
-      else
-      {
-        return nullptr;
-      }
-    }
-
-    /**
      * Obtiene el padre de un nodo con el valor especificado
      */
     NodoArbol<T> *obtenerPadre(NodoArbol<T> *nodo, T valor)
@@ -488,41 +546,6 @@ class Arbol
     }
 
     /**
-     * Devuelve el mínimo común ancestro de dos nodos, comenzando con el nodo especificado.
-     */
-    NodoArbol<T> *obtenerMinimoComunAncestro(NodoArbol<T> *actual, NodoArbol<T> *nodo1, NodoArbol<T> *nodo2)
-    {
-      if (actual == nullptr || !(esAncestroDe(actual, nodo1) && esAncestroDe(actual, nodo2)))
-      {
-        return nullptr;
-      }
-      else
-      {
-        auto menorIzquierda = obtenerMinimoComunAncestro(actual->izquierda, nodo1, nodo2);
-
-        if (menorIzquierda != nullptr)
-        {
-          return menorIzquierda;
-        }
-        else
-        {
-          auto menorDerecha = obtenerMinimoComunAncestro(actual->derecha, nodo1, nodo2);
-
-          if (menorDerecha != nullptr)
-          {
-            return menorDerecha;
-          }
-          else
-          {
-            return actual;
-          }
-          
-        }
-      }
-      
-    }
-
-    /**
      * Encuentra un camino entre ancestro y descendiente
      */
     Lista<NodoArbol<T> *> obtenerCaminoAncestroDescendiente(NodoArbol<T> *ancestro, NodoArbol<T> *descendiente)
@@ -576,7 +599,6 @@ class Arbol
       }
     }
 };
-
 /**
  * El toString de la clase.
 */

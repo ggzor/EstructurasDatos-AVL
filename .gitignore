@@ -2,3 +2,5 @@ main
 .vscode/*
 
 !.vscode/tasks.json
+
+__pycache__
