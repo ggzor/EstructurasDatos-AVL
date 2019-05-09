@@ -2,9 +2,9 @@
  * Benemérita Universidad Autónoma de Puebla
  * Estructuras de datos
  * 
- * Clase que representa un árbol binario no balanceado.
+ * Clase que representa un árbol binario de búsqueda balanceado (AVL).
  * 
- * Fecha: 24/04/2019
+ * Fecha: 09/05/2019
  * 
  * Equipo:
  *   Axel Suárez Polo        201744436
@@ -49,29 +49,11 @@ class Arbol
     }
 
     /**
-     * Elimina el nodo del árbol que contiene el valor especificado.
+     * Elimina el nodo del árbol que contiene el valor especificado, llamando al método recursivo
      */
     void eliminar(T valor) 
     {
-      if (!estaVacio()) 
-      {
-        // La raíz se maneja de forma particular, cuando es un nodo hoja
-        if (raiz->valor == valor && raiz->derecha == nullptr && raiz->izquierda == nullptr)
-        {
-          delete raiz;
-          raiz = nullptr;
-        }
-        else
-        {
-          NodoArbol<T> *padre = obtenerPadre(valor);
-          NodoArbol<T> *nodo = buscarNodo(valor);
-
-          if (nodo != nullptr)
-          {
-
-          }
-        }
-      }
+      raiz = eliminar(raiz, valor);
     }
 
     /**
@@ -329,6 +311,108 @@ class Arbol
 
         return alturaDerecha - alturaIzquierda;
       }
+    }
+
+    /**
+     * Elimina el nodo con el valor especificado, regresando el nuevo nodo.
+     */
+    NodoArbol<T> *eliminar(NodoArbol<T> *nodo, T valor)
+    {
+      // No se encontró el valor
+      if (nodo == nullptr)
+      {
+        return nullptr;
+      }
+      else if (valor < nodo->valor)
+      {
+        // Seguir la búsqueda a la izquierda
+        nodo->izquierda = eliminar(nodo->izquierda, valor);
+      }
+      else if (valor > nodo->valor)
+      {
+        // Seguir la búsqueda a la derecha 
+        nodo->derecha = eliminar(nodo->derecha, valor);
+      }
+      // Este es el nodo buscado
+      else
+      {
+        // Es un nodo hoja
+        if (nodo->izquierda == nullptr && nodo->derecha == nullptr)
+        {
+          delete nodo;
+          nodo = nullptr;
+        }
+        // Sólo tiene hijo izquierdo
+        else if(nodo->derecha == nullptr)
+        {
+          // Su hijo izquierdo será la nueva raíz del subárbol
+          NodoArbol<T> *temp = nodo->izquierda;
+          delete nodo;
+          nodo = temp;
+        }
+        // Sólo tiene hijo derecho
+        else if (nodo->izquierda == nullptr)
+        {
+          // Su hijo derecho será la nueva raíz del subárbol
+          NodoArbol<T> *temp = nodo->derecha;
+          delete nodo;
+          nodo = temp;
+        }
+        // Tiene ambos hijos
+        else
+        {
+          // Buscar el máximo nodo de la izquierda
+          NodoArbol<T> *maximo = nodo->izquierda;
+          while (maximo->derecha != nullptr)
+            maximo = maximo->derecha;
+
+          // Copiar valor al nodo actual
+          nodo->valor = maximo->valor;
+
+          // Eliminar recursivamente el nodo máximo de la izquierda
+          nodo->izquierda = eliminar(nodo->izquierda, maximo->valor);
+        }        
+      }
+
+      // El árbol fue eliminado completamente
+      if (nodo == nullptr)
+        return nullptr;
+
+      int factorEquilibrio = obtenerFactorEquilibrio(nodo);
+
+      // Verificar si está desbalanceado a la izquierda
+      if (factorEquilibrio <= -2) 
+      {
+        if (obtenerFactorEquilibrio(nodo->izquierda) <= 0)
+        {
+          // El subárbol de la izquierda es más grande (alto) o igual al subárbol de la derecha (Caso II)
+          return rotarDerecha(nodo);
+        }
+        else
+        {
+          // El subárbol de la izquierda es menor que el de la derecha (Caso ID)
+          nodo->izquierda = rotarIzquierda(nodo->izquierda);
+          return rotarDerecha(nodo);
+        }        
+      }
+      // Verificar si está desbalanceado a la derecha
+      else if (factorEquilibrio >= 2)
+      {
+        if (obtenerFactorEquilibrio(nodo->derecha) >= 0)
+        {
+          // El subárbol de la derecha es más pequeño (alto) o igual al subárbol de la izquierda (Caso DD)
+          return rotarIzquierda(nodo);
+        }
+        else
+        {
+          // El subárbol de la izquierda es menor que el de la derecha (Caso DI)
+          nodo->derecha = rotarDerecha(nodo->derecha);
+          return rotarIzquierda(nodo);
+        }
+      }
+
+      // No había desequilibrio, regresar nodo sin modificaciones
+      return nodo;
     }
 
     /**

@@ -2,10 +2,10 @@
  * Benemérita Universidad Autónoma de Puebla
  * Estructuras de datos
  * 
- * Implementación de la interfaz para mostrar recorridos
- *  en un arbol binario.
+ * Implementación de la interfaz para mostrar la inserción y eliminación en un árbol binario 
+ * de búsqueda AVL.
  * 
- * Fecha: 24/04/2019
+ * Fecha: 09/05/2019
  * 
  * Equipo:
  *   Axel Suárez Polo        201744436
@@ -145,8 +145,6 @@ int main()
           arbol.eliminar(valor);
           std::cout << colorNodo << "Se ha eliminado el nodo con el valor especificado." << terminarColor << std::endl;
         }
-
-        esperarEnter();
       }
       esperarEnter();
       break;
