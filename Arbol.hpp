@@ -50,7 +50,26 @@ class Arbol
       }
       else
       {
-        insertar(raiz, valor);
+        insertar(raiz, valor);        
+      }
+    }
+
+    /**
+     * Elimina el nodo del árbol que contiene el valor especificado.
+     */
+    void eliminar(T valor) 
+    {
+      if (!estaVacio()) 
+      {
+        if (raiz->valor == valor)
+        {
+          delete raiz;
+          raiz = nullptr;
+        }
+        else
+        {
+          // TODO: 
+        }
       }
     }
 
@@ -95,65 +114,10 @@ class Arbol
     }
 
     /**
-     * Obtiene los hijos de un nodo especificado.
-     */
-    Lista<NodoArbol<T> *> obtenerHijosDe(T valor) {
-      NodoArbol<T> *nodo = buscarNodo(valor);
-
-      if (nodo == nullptr) 
-        return {};
-      else
-        return {nodo->izquierda, nodo->derecha}; 
-    }
-
-    /**
      * Este método regresa verdadero si el árbol está vacío.
      */
     bool estaVacio() {
       return raiz == nullptr;
-    }
-
-
-    /**
-     * Regresa todos los nodos hoja del árbol, realizando
-     */
-    Lista<NodoArbol<T> *> obtenerHojas() {
-      Lista<NodoArbol<T> *> resultado;
-
-      auto recorrido = recorrerEnOrden();
-      for (NodoArbol<T> *nodo : recorrido)
-      {
-        if (nodo->derecha == nullptr && nodo->izquierda == nullptr)
-        {
-          resultado.insertarFinal(nodo);
-        }
-      }
-
-      return resultado;
-    } 
-
-    /**
-     * Regresa el hermano de un nodo, delega la búsqueda al método recursivo.
-     */
-    NodoArbol<T> *obtenerHermano(T valor)
-    {
-      if (raiz != nullptr)
-      {
-        // La raíz no tiene hermanos
-        if (raiz->valor == valor)
-        {
-          return nullptr;
-        }
-        else
-        {
-          // Delegar a metodo recursivo
-          return obtenerHermano(raiz, valor);
-        }
-      }
-      else
-      {
-        return nullptr;
-      }
     }
 
     /**
@@ -188,37 +152,6 @@ class Arbol
     }
 
     /**
-     * Obtiene los descendientes de un nodo
-     */
-    Lista<NodoArbol<T> *> obtenerDescendientes(T valor)
-    {
-      Lista<NodoArbol<T> *> resultadoFinal;
-      Lista<NodoArbol<T> *> resultado;
-      auto nodo = buscarNodo(valor);
-
-      if (nodo == nullptr)
-      {
-        // El nodo no está en el árbol
-        return resultado;
-      }
-      else
-      {
-        // Realizar un recorrido para llenarla con los resultados desde este nodo
-        recorrerEnOrden(nodo, resultado);
-
-        for (auto nodo : resultado)
-        {
-          if (nodo->valor != valor)
-          {
-            resultadoFinal.insertarFinal(nodo);
-          }
-        }
-
-        return resultadoFinal;
-      }
-    }
-
-    /**
      * Obtiene el camino entre dos nodos, si estos existen
      */
     Lista<NodoArbol<T> *> obtenerCamino(T valor1, T valor2)
@@ -226,25 +159,9 @@ class Arbol
       auto nodo1 = buscarNodo(valor1);
       auto nodo2 = buscarNodo(valor2);
 
-      if (nodo1 != nullptr && nodo2 != nullptr)
+      if (nodo1 != nullptr && nodo2 != nullptr && esAncestroDe(nodo1, nodo2))
       {
-        auto minimoComunAncestro = obtenerMinimoComunAncestro(raiz, nodo1, nodo2);
-
-        if (minimoComunAncestro != nullptr) 
-        {
-          auto camino1 = obtenerCaminoAncestroDescendiente(minimoComunAncestro, nodo1);
-          auto camino2 = obtenerCaminoAncestroDescendiente(minimoComunAncestro, nodo2);
-
-          if (!camino1.estaVacia() && !camino2.estaVacia() && camino1.frente->dato == camino2.frente->dato)
-            camino2.eliminarInicio();
-
-          return camino1.reversa().concatenar(camino2);
-        }
-        else
-        {
-          // Algo salío mal si llegamos aquí
-          return {};
-        }
+        return obtenerCaminoAncestroDescendiente(nodo1, nodo2);
       }
       else
       {
@@ -393,41 +310,6 @@ class Arbol
     }
 
     /**
-     * Regresa el hermano de un nodo, delega la búsqueda al método recursivo.
-     */
-    NodoArbol<T> *obtenerHermano(NodoArbol<T> *nodo, T valor)
-    {
-      if (nodo != nullptr)
-      {
-        if (nodo->izquierda != nullptr && nodo->izquierda->valor == valor)
-        {
-          return nodo->derecha;
-        }
-        else if (nodo->derecha != nullptr && nodo->derecha->valor == valor)
-        {
-          return nodo->izquierda;
-        }
-        else
-        {
-          auto resultadoIzquierda = obtenerHermano(nodo->izquierda, valor);
-
-          if (resultadoIzquierda != nullptr)
-          {
-            return resultadoIzquierda;
-          }
-          else
-          {
-            return obtenerHermano(nodo->derecha, valor);
-          }
-        }
-      }
-      else
-      {
-        return nullptr;
-      }
-    }
-
-    /**
      * Obtiene el padre de un nodo con el valor especificado
      */
     NodoArbol<T> *obtenerPadre(NodoArbol<T> *nodo, T valor)
@@ -488,41 +370,6 @@ class Arbol
     }
 
     /**
-     * Devuelve el mínimo común ancestro de dos nodos, comenzando con el nodo especificado.
-     */
-    NodoArbol<T> *obtenerMinimoComunAncestro(NodoArbol<T> *actual, NodoArbol<T> *nodo1, NodoArbol<T> *nodo2)
-    {
-      if (actual == nullptr || !(esAncestroDe(actual, nodo1) && esAncestroDe(actual, nodo2)))
-      {
-        return nullptr;
-      }
-      else
-      {
-        auto menorIzquierda = obtenerMinimoComunAncestro(actual->izquierda, nodo1, nodo2);
-
-        if (menorIzquierda != nullptr)
-        {
-          return menorIzquierda;
-        }
-        else
-        {
-          auto menorDerecha = obtenerMinimoComunAncestro(actual->derecha, nodo1, nodo2);
-
-          if (menorDerecha != nullptr)
-          {
-            return menorDerecha;
-          }
-          else
-          {
-            return actual;
-          }
-          
-        }
-      }
-      
-    }
-
-    /**
      * Encuentra un camino entre ancestro y descendiente
      */
     Lista<NodoArbol<T> *> obtenerCaminoAncestroDescendiente(NodoArbol<T> *ancestro, NodoArbol<T> *descendiente)
@@ -576,6 +423,12 @@ class Arbol
       }
     }
 };
+
+//Metodo para rotacion DD
+void rotacionDD(){
+  raiz=raiz->der->der;
+  raiz->izq=raiz
+}
 
 /**
  * El toString de la clase.
