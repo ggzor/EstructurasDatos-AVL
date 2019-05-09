@@ -35,7 +35,8 @@ int main()
               << "  3. Recorrido en Post Orden.  \n"
               << "  4. Insertar un elemento. \n"
               << "  5. Eliminar un valor dado.\n "
-              << "  6. Salir. \n"
+              << "  6. Encontrar camino\n"
+              << "  7. Salir. \n"
               << std::endl;
     std::cout << "Opción: ";
     std::cin >> op;
@@ -112,7 +113,7 @@ int main()
       break;
 
     case 4:
-      // Insertar valores al arbol
+      // Insertar valores al árbol
       int valor;
       std::cout << "Valor a insertar: " << colorNodo;
       std::cin >> valor;
@@ -122,7 +123,7 @@ int main()
       esperarEnter();
       break;
     case 5:
-      // Elimina un valor dado  al árbol 
+      // Elimina un valor dado del árbol 
       if (arbol.estaVacio())
       {
         std::cout << colorError << "El árbol está vacío." << terminarColor << std::endl;
@@ -146,7 +147,63 @@ int main()
       }
       esperarEnter();
       break;
-    case 6:
+    case 9:
+      if (arbol.estaVacio())
+      {
+        std::cout << colorError << "El árbol está vacío." << terminarColor << std::endl;
+      }
+      else
+      {
+        int valor1, valor2;
+        std::cout << "Valor 1: " << colorNodo;
+        std::cin >> valor1;
+        std::cout << terminarColor;
+
+        if (arbol.buscarNodo(valor1) == nullptr) 
+        {
+          std::cout << colorError << "El nodo no existe." << terminarColor << std::endl;
+        }
+        else
+        {
+          std::cout << "Valor 2: " << colorNodo;
+          std::cin >> valor2;
+          std::cout << terminarColor;
+
+          if (arbol.buscarNodo(valor2) == nullptr)
+          {
+            std::cout << colorError << "El nodo no existe." << terminarColor << std::endl;
+          }
+          else if (valor1 == valor2)
+          {
+            std::cout << "Se introdujo el mismo nodo de origen que de destino." << std::endl;
+          }
+          else
+          {
+            // Encontrar los descendientes del nodo
+            auto recorrido = arbol.obtenerCamino(valor1, valor2);
+
+            if (recorrido.estaVacia())
+            {
+              std::cout << "No existe camino entre los valores especificados. (Lo cual es raro :( ))" << std::endl;
+            }
+            else
+            {
+              std::cout << "El camino entre los nodos es: ";
+              for (auto nodo : recorrido)
+              {
+                std::cout << colorNodo << enNegritas << nodo->valor << terminarColor;
+                if (nodo->valor != valor2)
+                  std::cout << enNegritas << " -> ";
+              }
+
+              std::cout << terminarColor << std::endl;
+            }
+          }
+        }
+      }
+      esperarEnter();
+      break;
+    case 7:
       // Para evitar el siguiente mensaje
       break;
 
@@ -155,7 +212,7 @@ int main()
       esperarEnter();
       break;
     }
-  } while(op != 6);
+  } while(op != 7);
 
   return 0;
 }
