@@ -203,7 +203,9 @@ class Arbol
       // Si es nulo regresar un nuevo nodo
       if (nodo == nullptr) 
       {
-        return new NodoArbol<T>{valor};
+        NodoArbol<T> *nuevo = new NodoArbol<T>;
+        nuevo->valor = valor;
+        return nuevo;
       }
       // Posiblemente reasignar alguno de los nodos, si son nulos.
       else if (valor <= nodo->valor)
